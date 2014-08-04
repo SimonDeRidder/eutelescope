@@ -24,6 +24,7 @@
 #include "EUTelRunHeaderImpl.h"
 #include "EUTelHistogramManager.h"
 #include "EUTelExceptions.h"
+#include "EUTelUtility.h"
 
 // aida includes <.h>
 #include <marlin/AIDAProcessor.h>
@@ -421,15 +422,16 @@ void EUTelFitTuple::processEvent( LCEvent * event ) {
           TrackerHit * meshit = trackhits.at(ihit);
 
           // Hit position
-
           const double * pos = meshit->getPosition();
 
-          // We find plane number of the hit
-          // by looking at the Z position
+			
+          // find plane number of the hit
+		  
 
-          double distMin = 1.;
-          int hitPlane = -1 ;
+          //double distMin = 1.;
+          int hitPlane = EUTelUtility::getSensorIDfromHit(meshit);
 
+		 /**
           for(int ipl=0;ipl<_nTelPlanes;ipl++)
             {
               double dist =  pos[2] - _planePosition[ipl] ;
@@ -440,6 +442,7 @@ void EUTelFitTuple::processEvent( LCEvent * event ) {
                   distMin=dist;
                 }
             }
+		**/
 
           // Ignore hits not matched to any plane
 
