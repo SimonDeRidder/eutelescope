@@ -55,8 +55,8 @@ namespace eutelescope {
    *
    * \param InputCollectionName  Name of the input  Tracker collection
    *
-   * \param InputDUTCollectionName  Name of the input TrackerHit
-   *        collection, from which DUT hits are taken
+   * \param InputHitCollectionName  Name of the input TrackerHit
+   *        collection, from which hits are taken
    *
    * \param UseManualDUT Flag for manual DUT selection
    *                      i.e. ignoring GEAR definition
@@ -171,7 +171,7 @@ namespace eutelescope {
     std::string _inputColName ;
 
     //! Input \c TrackerHit collection name
-    std::string _inputDUTColName ;
+    std::string _inputHitColName ;
 
     //! Flag for manual DUT selection
 
@@ -179,7 +179,7 @@ namespace eutelescope {
 
     //! Id of telescope layer which should be used as DUT
 
-    int _manualDUTid;
+    int _DUTid;
 
     //!  Value to be used for missing measurements
     double _missingValue;
@@ -202,9 +202,9 @@ namespace eutelescope {
     bool   * _isFitted;
     double * _fittedX;
     double * _fittedY;
+	double * _fittedZ;
 
     int _iDUT;
-    double _zDUT;
     double _distMax;
     std::vector<float > _DUTalign;
 
