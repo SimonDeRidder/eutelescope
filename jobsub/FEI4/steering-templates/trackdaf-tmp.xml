@@ -188,17 +188,17 @@
   <!--Names of alignment collections, should be in same order as application-->
   <parameter name="AlignmentCollectionNames" type="StringVec" value="prealign align"/>
   <!--DAF fitter: The cutoff value for a measurement to be included in the fit.-->
-  <parameter name="Chi2Cutoff" type="float" value="1000"/>
+  <parameter name="Chi2Cutoff" type="float" value="100" />
   <!--List of sensor IDs for the DUT planes. Used to make the decision on whether ro accept the track or not. These planes are not used in track finder, and not in the track fitter unless option 'useDutsInFit' is set.-->
   <parameter name="DutPlanes" type="IntVec"> 20 </parameter>
   <!--Sigma of telescope resolution in the global X plane,-->
-  <parameter name="DutResolutionX" type="float" value="70"/>
+  <parameter name="DutResolutionX" type="float" value="14"/>
   <!--Sigma of telescope resolution in the global Y plane,-->
-  <parameter name="DutResolutionY" type="float" value="14"/>
+  <parameter name="DutResolutionY" type="float" value="70"/>
   <!--Beam energy [GeV], used to calculate amount of scatter-->
   <parameter name="Ebeam" type="float" value="@BeamEnergy@"/>
   <!--Track finding: The maximum allowed distance between to hits in the xy plane for inclusion in track candidate-->
-  <parameter name="FinderRadius" type="float" value="500"/>
+  <parameter name="FinderRadius" type="float" value="1500"/>
   <!--Set this to true if you want DUTs to be included in the track fit-->
   <parameter name="FitDuts" type="bool" value="true"/>
   <!--Names of input hit collections-->
@@ -218,19 +218,18 @@
   <!--reference hit collection name -->
   <parameter name="ReferenceCollection" type="string" value="refhit"/>
   <!--How many telescope planes do we require to be included in the fit?-->
-  <parameter name="RequireNTelPlanes" type="float" value="5"/>
+  <parameter name="RequireNTelPlanes" type="float" value="6"/>
   <!--Scale thickness of DUT planes-->
   <!--parameter name="ScaleScattering" type="float" value="1"/-->
   <!--Sigma of telescope resolution in the global X plane,-->
-  <parameter name="TelResolutionX" type="float" value="3"/>
+  <parameter name="TelResolutionX" type="float" value="4.0"/>
   <!--Sigma of telescope resolution in the global Y plane,-->
-  <parameter name="TelResolutionY" type="float" value="3"/>
+  <parameter name="TelResolutionY" type="float" value="4.0"/>
   <!--List of sensor IDs for the telescope planes. These planes are used for the track finder, and track fitter.-->
-  <parameter name="TelescopePlanes" type="IntVec">  </parameter>
+  <parameter name="TelescopePlanes" type="IntVec"> 0 1 2 3 4 5 </parameter>
 
   <processor name="Fitter" type="EUTelDafFitter">
    <parameter name="TrackCollectionName" type="string" lcioOutType="Track"> track </parameter>
-   <parameter name="TelescopePlanes" type="IntVec"> 0 1 2 20 3 4 5 </parameter>
   </processor>
 </group>
 
@@ -321,13 +320,11 @@
   <!--Alignment corrections for DUT: shift in X, Y and rotation around Z-->
   <parameter name="DUTalignment" type="FloatVec"> </parameter>
   <!--Maximum allowed distance between fit and matched DUT hit-->
-  <parameter name="DistMax" type="double">0.1 </parameter>
+  <parameter name="DistMax" type="double">10.1 </parameter>
   <!--Name of the input Track collection-->
   <parameter name="InputCollectionName" type="string" lcioInType="Track">track </parameter>
-  <!--Name of the input DUT hit collection-->
-  <parameter name="InputDUTCollectionName" type="string" lcioInType="TrackerHit"> hit </parameter>
   <!--Id of telescope layer which should be used as DUT-->
-  <parameter name="ManualDUTid" type="int">20 </parameter>
+  <parameter name="DUTid" type="int">20 </parameter>
   <!--Value used for missing measurements-->
   <parameter name="MissingValue" type="double">-100 </parameter>
   <!--Flag for manual DUT selection-->

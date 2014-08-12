@@ -170,9 +170,6 @@ namespace eutelescope {
     //! Input \c Track collection name
     std::string _inputColName ;
 
-    //! Input \c TrackerHit collection name
-    std::string _inputHitColName ;
-
     //! Flag for manual DUT selection
 
     bool _useManualDUT;
@@ -186,10 +183,10 @@ namespace eutelescope {
 
     // Setup description
 
-    int _nTelPlanes;
+    int _nPlanes;
 
     int * _planeSort;
-    int * _planeID;
+    std::vector<int> * _planeID;
     double * _planePosition;
     bool   * _isActive;
 
@@ -203,6 +200,13 @@ namespace eutelescope {
     double * _fittedX;
     double * _fittedY;
 	double * _fittedZ;
+
+    double * _measuredXLocal;
+    double * _measuredYLocal;
+    double * _measuredZLocal;
+	double * _fittedXLocal;
+    double * _fittedYLocal;
+	double * _fittedZLocal;
 
     int _iDUT;
     double _distMax;
