@@ -31,6 +31,10 @@
 #include <vector>
 #include <map>
 
+//root includes
+#include <TTree.h>
+#include <TFile.h>
+
 namespace eutelescope {
 
 
@@ -127,6 +131,10 @@ namespace eutelescope {
      */
     virtual void check( LCEvent * evt ) ;
 
+    //! Called after data processing for clean up.
+    /*! Used to release memory allocated in init() step
+     */
+    virtual void end() ;
 
     //! Book histograms
     /*! This method is used to books all required
@@ -136,11 +144,11 @@ namespace eutelescope {
      */
     void bookHistos();
 
-
-    //! Called after data processing for clean up.
-    /*! Used to release memory allocated in init() step
+    //! Clear the data variables
+    /*! Used to clear the variables to be saved at
+	 *	the start of every new event.
      */
-    virtual void end() ;
+	void clearVariables();
 
   protected:
 
@@ -171,7 +179,6 @@ namespace eutelescope {
     std::string _inputColName ;
 
     //! Flag for manual DUT selection
-
     bool _useManualDUT;
 
     //! Id of telescope layer which should be used as DUT
@@ -181,6 +188,16 @@ namespace eutelescope {
     //!  Value to be used for missing measurements
     double _missingValue;
 
+	//! Path to output root file
+	std::string _path2file;
+
+	//output file object
+	TFile* _outputFile;
+
+	//data tree
+	TTree* _euTree;
+    static std::string _TreeName;
+
     // Setup description
 
     int _nPlanes;
@@ -189,7 +206,10 @@ namespace eutelescope {
     std::vector<int> * _planeID;
     double * _planePosition;
     bool   * _isActive;
+    int _iDUT;
 
+	// tuple data arrays:
+	//hit information
     bool   * _isMeasured;
     double * _measuredX;
     double * _measuredY;
@@ -208,9 +228,26 @@ namespace eutelescope {
     double * _fittedYLocal;
 	double * _fittedZLocal;
 
-    int _iDUT;
-    double _distMax;
-    std::vector<float > _DUTalign;
+	double * _resXLocal;
+	double * _resYLocal;
+	double * _resZLocal;
+
+	//DUT variables
+	double _dutXLocal;
+	double _dutYLocal;
+	double _dutZLocal;
+	double _dutTx;
+	double _dutTy;
+	double _dutQ;
+	int _dutClusterSizeX;
+	int _dutClusterSizeY;
+
+	//pixel information
+	int _nPixHits;
+	std::vector<int>* _p_col;
+	std::vector<int>* _p_row;
+	std::vector<int>* _p_tot;
+	std::vector<int>* _p_lv1;
 
     // Internal processor variables
     // ----------------------------
@@ -219,15 +256,14 @@ namespace eutelescope {
     int _nEvt ;
     int _runNr;
     int _evtNr;
-    long int  _tluTimeStamp;
+    /*long*/unsigned int  _tluTimeStamp;
+	int _nTracks;
+	int _ndf;
+	float _chi2;
 
 
 #if defined(USE_AIDA) || defined(MARLIN_USE_AIDA)
-
-
-    static std::string _FitTupleName;
-
-    AIDA::ITuple * _FitTuple;
+	//AIDA::ITuple * _FitTuple;
 
 #endif
 

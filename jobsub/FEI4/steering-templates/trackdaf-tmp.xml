@@ -18,8 +18,8 @@
    <execute>
       <processor name="AIDA"/>
       <processor name="LoadDB"/>
-      <processor name="ApplyPreAlignment"/>
-      <processor name="ApplyAlignment"/>
+      <!--processor name="ApplyPreAlignment"/>
+      <processor name="ApplyAlignment"/-->
       <group name="TelDUTFitter"/>
       <group name="TelDUTTransferToLocalCoordinates"/>
       <processor name="MyEUTelUtilityPrintEventNumber"/>
@@ -73,7 +73,7 @@
   <parameter name="SimpleFileHandler" type="StringVec"> refhit51 @DatabasePath@/@FilePrefix@-refhit-db.slcio referenceHit </parameter>
   <parameter name="SimpleFileHandler" type="StringVec"> refhit52 @DatabasePath@/@FilePrefix@-refhit-db.slcio referenceHit </parameter>
   <parameter name="SimpleFileHandler" type="StringVec"> prealign  @DatabasePath@/@FilePrefix@-prealign-db.slcio alignment </parameter>
-  <parameter name="SimpleFileHandler" type="StringVec"> align @DatabasePath@/@FilePrefix@-alignment.slcio alignment </parameter>
+  <!--parameter name="SimpleFileHandler" type="StringVec"> align @DatabasePath@/@FilePrefix@-alignment.slcio alignment </parameter-->
   <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
   <!--parameter name="Verbosity" type="string" value=""/-->
 </processor>
@@ -117,7 +117,7 @@
   <!--This is the name of the modified output reference hit collection-->
   <!--parameter name="OutputReferenceCollection" type="string" value="output_refhit"/-->
   <!--Events number to have DEBUG1 printed outs (default=10)-->
-  <parameter name="PrintEvents" type="int" value="0"/>
+  <parameter name="PrintEvents" type="int" value="3"/>
   <!--This is the name of the reference hit collection-->
   <parameter name="ReferenceCollection" type="string" value="refhit"/>
   <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
@@ -169,7 +169,7 @@
   <!--This is the name of the modified output reference hit collection-->
   <!--parameter name="OutputReferenceCollection" type="string" value="output_refhit"/-->
   <!--Events number to have DEBUG1 printed outs (default=10)-->
-  <parameter name="PrintEvents" type="int" value="0"/>
+  <parameter name="PrintEvents" type="int" value="3"/>
   <!--This is the name of the reference hit collection-->
   <parameter name="ReferenceCollection" type="string" value="refhit"/>
   <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
@@ -186,10 +186,10 @@
   <!--Should plots be made and filled?-->
   <!--parameter name="AddToLCIO" type="bool" value="true"/-->
   <!--Names of alignment collections, should be in same order as application-->
-  <parameter name="AlignmentCollectionNames" type="StringVec" value="prealign align"/>
+  <parameter name="AlignmentCollectionNames" type="StringVec" value=""/><!--prealign align"/-->
   <!--DAF fitter: The cutoff value for a measurement to be included in the fit.-->
   <parameter name="Chi2Cutoff" type="float" value="100" />
-  <!--List of sensor IDs for the DUT planes. Used to make the decision on whether ro accept the track or not. These planes are not used in track finder, and not in the track fitter unless option 'useDutsInFit' is set.-->
+  <!--List of sensor IDs for the DUT planes. Used to make the decision on whether ro accept the track or not. These planes are not used in track finder, and not in the track fitter unless option 'FitDuts' is set.-->
   <parameter name="DutPlanes" type="IntVec"> 20 </parameter>
   <!--Sigma of telescope resolution in the global X plane,-->
   <parameter name="DutResolutionX" type="float" value="14"/>
@@ -201,8 +201,6 @@
   <parameter name="FinderRadius" type="float" value="1500"/>
   <!--Set this to true if you want DUTs to be included in the track fit-->
   <parameter name="FitDuts" type="bool" value="true"/>
-  <!--Names of input hit collections-->
-  <parameter name="HitCollectionName" type="StringVec" value="alignedHit"/>
   <!--Should plots be made and filled?-->
   <parameter name="MakePlots" type="bool" value="true"/>
   <!--Maximum allowed global chi2/ndof-->
@@ -228,13 +226,18 @@
   <!--List of sensor IDs for the telescope planes. These planes are used for the track finder, and track fitter.-->
   <parameter name="TelescopePlanes" type="IntVec"> 0 1 2 3 4 5 </parameter>
 
-  <processor name="Fitter" type="EUTelDafFitter">
-   <parameter name="TrackCollectionName" type="string" lcioOutType="Track"> track </parameter>
+  <!--processor name="FitterAlignedHits" type="EUTelDafFitter"-->
+    <!--Names of input hit collections-->
+    <!--parameter name="HitCollectionName" type="StringVec" value="alignedHit"/>
+    <parameter name="TrackCollectionName" type="string" lcioOutType="Track"> track_alignedhits </parameter>
+  </processor-->
+
+  <processor name="FitterGearHits" type="EUTelDafFitter">
+    <!--Names of input hit collections-->
+    <parameter name="HitCollectionName" type="StringVec" value="hit"/>
+    <parameter name="TrackCollectionName" type="string" lcioOutType="Track"> track_gearhits </parameter>
   </processor>
 </group>
-
-
-
 
 
 <group name="TelDUTTransferToLocalCoordinates" >
@@ -317,18 +320,16 @@
 
  <processor name="WriteTracksToNTuple" type="EUTelFitTuple">
   <!--Prepare n-tuple with track fit results-->
-  <!--Alignment corrections for DUT: shift in X, Y and rotation around Z-->
-  <parameter name="DUTalignment" type="FloatVec"> </parameter>
-  <!--Maximum allowed distance between fit and matched DUT hit-->
-  <parameter name="DistMax" type="double">10.1 </parameter>
   <!--Name of the input Track collection-->
-  <parameter name="InputCollectionName" type="string" lcioInType="Track">track </parameter>
+  <parameter name="InputCollectionName" type="string" lcioInType="Track">track_gearhits </parameter>
   <!--Id of telescope layer which should be used as DUT-->
   <parameter name="DUTid" type="int">20 </parameter>
   <!--Value used for missing measurements-->
   <parameter name="MissingValue" type="double">-100 </parameter>
   <!--Flag for manual DUT selection-->
   <parameter name="UseManualDUT" type="bool">false </parameter>
+  <!--"Path/File where root-file should be stored"-->
+  <parameter name="OutputPath" type="string">@HistogramPath@/@FilePrefix@-NTuple.root </parameter>
   <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
   <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
 </processor>
