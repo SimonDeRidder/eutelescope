@@ -45,7 +45,7 @@
 #include "EUTelExceptions.h"
 #include "EUTelSparseClusterImpl.h"
 #include "EUTelReferenceHit.h"
-
+#include "EUTelGeometryTelescopeGeoDescription.h"
 
 // marlin includes ".h"
 #include "marlin/Processor.h"
@@ -206,13 +206,9 @@ void EUTelDafBase::gearRotate(size_t index, size_t gearIndex){
   daffitter::FitPlane& pl = _system.planes.at(index);
 
   double gRotation[3] = { 0., 0., 0.};
-  gRotation[0] = _siPlanesLayerLayout->getLayerRotationXY(gearIndex); // Euler alpha ;
-  gRotation[1] = _siPlanesLayerLayout->getLayerRotationZX(gearIndex); // Euler alpha ;
-  gRotation[2] = _siPlanesLayerLayout->getLayerRotationZY(gearIndex); // Euler alpha ;
-  // transform into radians
-  gRotation[0] =  gRotation[0]*3.1415926/180.; 
-  gRotation[1] =  gRotation[1]*3.1415926/180.; 
-  gRotation[2] =  gRotation[2]*3.1415926/180.; 
+  gRotation[0] =  geo::gGeometry().siPlaneZRotationRadians(gearIndex); // Euler alpha ;
+  gRotation[1] =  geo::gGeometry().siPlaneYRotationRadians(gearIndex); // Euler beta  ;
+  gRotation[2] =  geo::gGeometry().siPlaneXRotationRadians(gearIndex); // Euler gamma ;
   
   //Reference points define plane
   //Transform ref, cloning hitmaker logic
@@ -220,8 +216,8 @@ void EUTelDafBase::gearRotate(size_t index, size_t gearIndex){
   TVector3 ref1 = TVector3(10.0, 0.0, 0.0);
   TVector3 ref2 = TVector3(0.0, 10.0, 0.0);
 
-  double zZero        = _siPlanesLayerLayout->getSensitivePositionZ(gearIndex); // mm
-  double zThickness   = _siPlanesLayerLayout->getSensitiveThickness(gearIndex); // mm
+  double zZero        =  geo::gGeometry().siPlaneZPosition(gearIndex); // mm
+  double zThickness   =  geo::gGeometry().siPlaneZSize(gearIndex); // mm
 
   double nomZ = zZero + 0.5 * zThickness;
 
@@ -323,15 +319,17 @@ void EUTelDafBase::init() {
   n_failedNdof =0; n_failedChi2OverNdof = 0; n_failedIsnan = 0;
   _initializedSystem = false;
 
-  //Geometry description
-  _siPlanesParameters  = const_cast<gear::SiPlanesParameters* > (&(Global::GEAR->getSiPlanesParameters()));
-  _siPlanesLayerLayout = const_cast<gear::SiPlanesLayerLayout*> ( &(_siPlanesParameters->getSiPlanesLayerLayout() ));
+  // Getting access to geometry description
+  std::string name("test.root");
+  geo::gGeometry().initializeTGeoDescription(name,false);
+
 
   //Use map to sort planes by z
   _zSort.clear();
-  for(int plane = 0; plane < _siPlanesLayerLayout->getNLayers(); plane++){
-    _zSort[ _siPlanesLayerLayout->getLayerPositionZ(plane) * 1000.0 ] = plane;
-    _indexIDMap[ _siPlanesLayerLayout->getID( plane )] = plane;
+  for(int plane = 0; plane < geo::gGeometry().nPlanes() ; plane++){
+    _zSort[ geo::gGeometry().siPlaneZPosition(plane) ] = plane;
+     streamlog_out ( MESSAGE5 ) << "--------- " << plane << " " <<  geo::gGeometry().siPlaneZPosition(plane) << std::endl;
+    //_indexIDMap[ _siPlanesLayerLayout->getID( plane ) ] = plane;
   }
 
   //Add Planes to tracker system,
@@ -339,21 +337,21 @@ void EUTelDafBase::init() {
   size_t index(0), nActive(0);
   for( ; zit != _zSort.end(); index++, zit++){
     _nRef.push_back(3);
-    int sensorID = _siPlanesLayerLayout->getID( (*zit).second );
+    int sensorID = geo::gGeometry().sensorIDsVec().at( (*zit).second );
+
     //Read sensitive as 0, in case the two are different
-    float zPos  = _siPlanesLayerLayout->getSensitivePositionZ( (*zit).second )* 1000.0
-      + 0.5 * 1000.0 *  _siPlanesLayerLayout->getSensitiveThickness( (*zit).second) ; // um
+    float zPos  = (*zit).first * 1000.0 + 0.5 * 1000.0 *  geo::gGeometry().siPlaneZSize( sensorID ) ; // um
     //Figure out what kind of plane we are dealing with
     float errX(0.0f), errY(0.0f);
     bool excluded = true;
 
     // Get scatter using x / x0
-    float radLength = _siPlanesLayerLayout->getLayerThickness( (*zit).second ) /  _siPlanesLayerLayout->getLayerRadLength( (*zit).second );
-    radLength += _siPlanesLayerLayout->getSensitiveThickness( (*zit).second ) /  _siPlanesLayerLayout->getSensitiveRadLength( (*zit).second );
+    float radLength = geo::gGeometry().siPlaneZSize ( (*zit).second ) / geo::gGeometry().siPlaneRadLength( (*zit).second );
 
-    streamlog_out ( MESSAGE5 ) << " zPos:      " << zPos << " " << radLength ;
-    streamlog_out ( MESSAGE5 ) << " sen thick: " << _siPlanesLayerLayout->getSensitiveThickness( (*zit).second ) ;
-    streamlog_out ( MESSAGE5 ) << " sens rad:  " << _siPlanesLayerLayout->getSensitiveRadLength( (*zit).second ) << endl;
+    streamlog_out ( MESSAGE5 ) << " ID:        " << sensorID ;
+    streamlog_out ( MESSAGE5 ) << " zPos:      " << zPos  ;
+    streamlog_out ( MESSAGE5 ) << " sen thick: " << geo::gGeometry().siPlaneZSize( (*zit).second ) ;
+    streamlog_out ( MESSAGE5 ) << " sens rad:  " << geo::gGeometry().siPlaneRadLength( (*zit).second ) << endl;
     if( _radLength.size() > index){
       radLength = _radLength.at(index);
     }
@@ -437,24 +435,6 @@ float EUTelDafBase::getScatterThetaVar( float radLength ){
   return(scatterTheta * scatterTheta);
 }
 
-size_t EUTelDafBase::getPlaneIndex(float zPos){
-  //Get plane index from z-position of hit
-  map<float,int>::iterator it = _zSort.begin();
-  size_t index(0);
-  bool foundIt(false);
-  for(;it != _zSort.end(); index++, it++){
-    if( fabs((*it).first - zPos) < 30000.0){ 
-      foundIt = true; break;
-    }
-  }
-  if(not foundIt){ 
-    streamlog_out ( ERROR5 ) << "Found hit at z=" << zPos << " , not able to assign to any plane!" << endl; 
-    return(-1);
-  }
-
-  return(index);
-}
-
 
 void EUTelDafBase::readHitCollection(LCEvent* event)
 {
@@ -516,7 +496,7 @@ void EUTelDafBase::readHitCollection(LCEvent* event)
       { 
 	streamlog_out ( DEBUG5 ) << " add point [" << planeIndex << "] "<< 
                       static_cast< float >(pos[0]) * 1000.0f << " " << static_cast< float >(pos[1]) * 1000.0f << " " <<  static_cast< float >(pos[2]) * 1000.0f << endl;
-        _system.addMeasurement( _indexIDMap[planeIndex], static_cast< float >(pos[0]) * 1000.0f, static_cast< float >(pos[1]) * 1000.0f, static_cast< float >(pos[2]) * 1000.0f,  region, iHit);
+        _system.addMeasurement( geo::gGeometry().sensorIDtoZOrder(planeIndex), static_cast< float >(pos[0]) * 1000.0f, static_cast< float >(pos[1]) * 1000.0f, static_cast< float >(pos[2]) * 1000.0f,  region, iHit);
       }
     }
   }

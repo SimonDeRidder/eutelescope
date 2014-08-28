@@ -184,8 +184,6 @@ namespace eutelescope {
     //! Sensor ID vector
     std::vector< int > _sensorIDVec;
 
-    //! Sensor ID map (inverse sensorIDVec) 
-    std::map< int, int > _sensorIDVecMap;
     //! Sensor ID vector, 
     /*! it's position along Z axis
      */ 

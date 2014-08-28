@@ -121,7 +121,6 @@ namespace eutelescope {
     virtual void dafParams(){;}
     
 
-    size_t getPlaneIndex(float zPos);
     float getScatterThetaVar(float radLength);
     void readHitCollection(LCEvent* event);
     void bookHistos();

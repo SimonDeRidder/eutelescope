@@ -1,6 +1,10 @@
 // Version: $Id$
 #ifdef USE_GEAR
+
 // eutelescope includes ".h"
+#include "EUTelGeometryTelescopeGeoDescription.h"
+
+
 #include "EUTelPreAlignment.h"
 #include "EUTelRunHeaderImpl.h"
 #include "EUTelEventImpl.h"
@@ -104,6 +108,11 @@ void EUTelPreAlign::init () {
 
   printParameters ();
 
+  // Getting access to geometry description
+  std::string name("test.root");
+  geo::gGeometry().initializeTGeoDescription(name,false);
+
+
   // set to zero the run and event counters
   _iRun = 0;  _iEvt = 0;
 
@@ -111,66 +120,24 @@ void EUTelPreAlign::init () {
 
   _referenceHitVec = 0;
 
-  // clear the sensor ID vector
-  _sensorIDVec.clear();
 
-  // clear the sensor ID map
-  _sensorIDVecMap.clear();
-  _sensorIDtoZOrderMap.clear();
+  for( int iPlane = 0 ; iPlane < geo::gGeometry().nPlanes() ; iPlane++ ) {
 
-  // clear the sensor ID vector (z-axis order)
-  _sensorIDVecZOrder.clear();
+    int sensorID = geo::gGeometry().sensorZOrderToID( iPlane );
 
-  //
-  _siPlanesParameters  = const_cast<SiPlanesParameters* > (&(Global::GEAR->getSiPlanesParameters()));
-  _siPlanesLayerLayout = const_cast<SiPlanesLayerLayout*> ( &(_siPlanesParameters->getSiPlanesLayerLayout() ));
-
-  for( int iPlane = 0 ; iPlane < _siPlanesLayerLayout->getNLayers(); iPlane++ ) {
-
-    if(_siPlanesLayerLayout->getID(iPlane) == _fixedID ) { 
+    if( sensorID == _fixedID ) { 
       //Get Zpos of ref plane
-      _fixedZ = _siPlanesLayerLayout->getSensitivePositionZ(iPlane); 
+      _fixedZ =  geo::gGeometry().siPlaneZPosition(sensorID); 
     } else {
       //Get 
-      _preAligners.push_back( PreAligner( _siPlanesLayerLayout->getSensitivePitchX(iPlane) /10.,
-					  _siPlanesLayerLayout->getSensitivePitchY(iPlane) /10.,
-					  _siPlanesLayerLayout->getSensitivePositionZ(iPlane),
-					  _siPlanesLayerLayout->getID(iPlane)) );
+      _preAligners.push_back( PreAligner(  geo::gGeometry().siPlaneXPitch(sensorID) /10.,
+					   geo::gGeometry().siPlaneYPitch(sensorID) /10.,
+                                           geo::gGeometry().siPlaneZPosition(sensorID),
+					   sensorID ) 
+                                         );
     }
   }
 
-
-  _siPlaneZPosition = new double[ _siPlanesLayerLayout->getNLayers() ];
-  for ( int iPlane = 0 ; iPlane < _siPlanesLayerLayout->getNLayers(); iPlane++ ) 
-    {
-
-      _siPlaneZPosition[ iPlane ] = _siPlanesLayerLayout->getLayerPositionZ(iPlane);
-      int sensorID = _siPlanesLayerLayout->getID( iPlane );
-
-      _sensorIDVec.push_back( sensorID );
-      _sensorIDVecMap.insert( make_pair( sensorID, iPlane ) );
-
-      // count number of the sensors to the left of the current one:
-      int _sensors_to_the_left = 0;
-      for ( int jPlane = 0 ; jPlane < _siPlanesLayerLayout->getNLayers(); jPlane++ ) 
-	{
-	  if( _siPlanesLayerLayout->getLayerPositionZ(jPlane) + 1e-06 < _siPlaneZPosition[ iPlane ] )
-	    {
-	      _sensors_to_the_left++;
-	    }
-	}
-      streamlog_out ( DEBUG5 ) << " iPlane " << iPlane << " sensor_#_along_Z_axis " << _sensors_to_the_left << "[z= " << setprecision (3) << _siPlaneZPosition[iPlane] << " ] [sensorID " << sensorID << " ]  " << endl;
-
-      _sensorIDVecZOrder.push_back( _sensors_to_the_left );
-      _sensorIDtoZOrderMap.insert( make_pair( sensorID, _sensors_to_the_left ) );
-    }
-
-  for ( int iPlane = 0 ; iPlane < _siPlanesLayerLayout->getNLayers(); iPlane++ ) 
-    {
-      _siPlaneZPosition[ iPlane ] = _siPlanesLayerLayout->getLayerPositionZ(iPlane);
-      int sensorID = _siPlanesLayerLayout->getID( iPlane );
-      _sensorIDinZordered.insert( make_pair( _sensorIDtoZOrderMap[ sensorID ], sensorID ) );
-    }
 
 #if defined(USE_AIDA) || defined(MARLIN_USE_AIDA)
   string tempHistoName = "";
@@ -179,9 +146,9 @@ void EUTelPreAlign::init () {
   if( _fillHistos ) {
 
     // Allow any plane to be the fixed reference:
-    for(unsigned int i = 0; i < _sensorIDVecZOrder.size(); i++)
-      {
-	int sensorID = _sensorIDinZordered[i];
+    for( int iPlane = 0 ; iPlane < geo::gGeometry().nPlanes() ; iPlane++ ) {
+
+        int sensorID = geo::gGeometry().sensorZOrderToID( iPlane );
 
 	basePath = "plane_" + to_string( sensorID );
 	AIDAProcessor::tree(this)->mkdir(basePath.c_str());

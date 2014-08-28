@@ -6,19 +6,14 @@
 
    <execute>
       <processor name="AIDA"/>
-      <processor name="LoadHotPixelDB"/>
       <processor name="ClusteringMimosa"/>
       <processor name="ClusteringAPIX"/>
-      <processor name="NoisyClusterMaskerM26"/>
-      <processor name="NoisyClusterMaskerAPIX"/>
-      <processor name="NoisyClusterRemoverM26"/>
-      <processor name="NoisyClusterRemoverAPIX"/>
       <processor name="Save"/>
       <processor name="EUTelUtilityPrintEventNumber"/>
    </execute>
 
    <global>
-      <parameter name="LCIOInputFiles"> @LcioPath@/run@RunNumber@-converter.slcio </parameter>
+      <parameter name="LCIOInputFiles"> @NativePath@/run@RunNumber@-allpix.slcio </parameter>
       <parameter name="GearXMLFile" value="@GearFilePath@/@GearFile@"/>
       <parameter name="MaxRecordNumber" value="@MaxRecordNumber@"/>
       <parameter name="SkipNEvents" value="@SkipNEvents@"/>

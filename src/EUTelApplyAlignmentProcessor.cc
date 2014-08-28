@@ -10,6 +10,9 @@
 
 #ifdef USE_GEAR
 // eutelescope includes ".h"
+#include "EUTelGeometryTelescopeGeoDescription.h"
+
+// eutelescope includes ".h"
 #include "EUTelApplyAlignmentProcessor.h"
 #include "EUTelAlignmentConstant.h"
 #include "EUTELESCOPE.h"
@@ -247,19 +250,23 @@ void EUTelApplyAlignmentProcessor::init() {
   _iRun = 0;
   _iEvt = 0;
 
+  // Getting access to geometry description
+  std::string name("test.root");
+  geo::gGeometry().initializeTGeoDescription(name,false);
+
   // check if the GEAR manager pointer is not null!
   if ( Global::GEAR == 0x0 ) {
     streamlog_out ( ERROR4 ) <<  "The GearMgr is not available, for an unknown reason." << endl;
     exit(-1);
   }
 
-  _siPlanesParameters  = const_cast<SiPlanesParameters* > (&(Global::GEAR->getSiPlanesParameters()));
-  _siPlanesLayerLayout = const_cast<SiPlanesLayerLayout*> ( &(_siPlanesParameters->getSiPlanesLayerLayout() ));
+//_siPlanesParameters  = const_cast<SiPlanesParameters* > (&(Global::GEAR->getSiPlanesParameters()));
+//_siPlanesLayerLayout = const_cast<SiPlanesLayerLayout*> ( &(_siPlanesParameters->getSiPlanesLayerLayout() ));
 
-  _siPlaneZPosition = new double[ _siPlanesLayerLayout->getNLayers() ];
-  for ( int iPlane = 0 ; iPlane < _siPlanesLayerLayout->getNLayers(); iPlane++ ) {
-    _siPlaneZPosition[ iPlane ] = _siPlanesLayerLayout->getLayerPositionZ(iPlane);
-  }
+//_siPlaneZPosition = new double[ _siPlanesLayerLayout->getNLayers() ];
+//for ( int iPlane = 0 ; iPlane < _siPlanesLayerLayout->getNLayers(); iPlane++ ) {
+//  _siPlaneZPosition[ iPlane ] = _siPlanesLayerLayout->getLayerPositionZ(iPlane);
+//}
 
 #if defined(MARLIN_USE_AIDA) || defined(USE_AIDA)
 //  _histogramSwitch = false;
@@ -269,10 +276,11 @@ void EUTelApplyAlignmentProcessor::init() {
 
   _referenceHitVec = 0;
  
-  _orderedSensorIDVec.clear();
-  for ( int iPlane = 0 ; iPlane < _siPlanesParameters->getSiPlanesNumber() ; ++iPlane ) {
-    _orderedSensorIDVec.push_back( _siPlanesLayerLayout->getID( iPlane ) );
-  }
+//  _orderedSensorIDVec.clear();
+//for ( int iPlane = 0 ; iPlane < _siPlanesParameters->getSiPlanesNumber() ; ++iPlane ) {
+//  _orderedSensorIDVec.push_back( _siPlanesLayerLayout->getID( iPlane ) );
+//}
+
   _lookUpTable.clear();
 }
 
@@ -648,7 +656,7 @@ void EUTelApplyAlignmentProcessor::ApplyGear6D( LCEvent *event)
 
       // now we have to understand which layer this hit belongs to.
       int sensorID = hitDecoder(inputHit)["sensorID"];
-
+/*
       if ( _conversionIdMap.size() != static_cast< unsigned >( _siPlanesParameters->getSiPlanesNumber()) ) 
       {
           // first of all try to see if this sensorID already belong to
@@ -667,12 +675,13 @@ void EUTelApplyAlignmentProcessor::ApplyGear6D( LCEvent *event)
               }
           }
       }
-
-      int layerIndex   = _conversionIdMap[sensorID];
+*/
+//      int layerIndex   = _conversionIdMap[sensorID];
 
       // determine z position of the plane
 	  // 20 December 2010 @libov
-      float	z_sensor = 0;
+      float z_sensor = geo::gGeometry().siPlaneZPosition(sensorID);
+/*
 	  for ( int iPlane = 0 ; iPlane < _siPlanesLayerLayout->getNLayers(); ++iPlane ) 
       {
           if (sensorID == _siPlanesLayerLayout->getID( iPlane ) ) 
@@ -681,6 +690,7 @@ void EUTelApplyAlignmentProcessor::ApplyGear6D( LCEvent *event)
               break;
           }
       }
+*/
 
       // copy the input to the output, at least for the common part
       TrackerHitImpl   * outputHit  = new TrackerHitImpl;
@@ -709,20 +719,20 @@ void EUTelApplyAlignmentProcessor::ApplyGear6D( LCEvent *event)
           }
           else
           {
-              gRotation[0]    = _siPlanesLayerLayout->getLayerRotationXY(layerIndex); // Euler alpha ;
-              gRotation[1]    = _siPlanesLayerLayout->getLayerRotationZX(layerIndex); // Euler alpha ;
-              gRotation[2]    = _siPlanesLayerLayout->getLayerRotationZY(layerIndex); // Euler alpha ;
+              gRotation[0] = geo::gGeometry().siPlaneZRotation(sensorID); // _siPlanesLayerLayout->getLayerRotationXY(layerIndex); // Euler alpha ;
+              gRotation[1] = geo::gGeometry().siPlaneYRotation(sensorID); // _siPlanesLayerLayout->getLayerRotationZX(layerIndex); // Euler alpha ;
+              gRotation[2] = geo::gGeometry().siPlaneXRotation(sensorID); // _siPlanesLayerLayout->getLayerRotationZY(layerIndex); // Euler alpha ;
 
               // input angles are in DEGREEs !!!
               // translate into radians
     
-              gRotation[0]  =   gRotation[0] *3.1415926/180.; // 
-              gRotation[1]  =   gRotation[1] *3.1415926/180.; //
-              gRotation[2]  =   gRotation[2] *3.1415926/180.; //
+              gRotation[0] = gRotation[0] *3.1415926/180.; // 
+              gRotation[1] = gRotation[1] *3.1415926/180.; //
+              gRotation[2] = gRotation[2] *3.1415926/180.; //
 
-              telPos[0]  =  _siPlanesLayerLayout->getSensitivePositionX(layerIndex); // mm
-              telPos[1]  =  _siPlanesLayerLayout->getSensitivePositionY(layerIndex); // mm
-              telPos[2]  =  _siPlanesLayerLayout->getSensitivePositionZ(layerIndex); // mm
+              telPos[0] = geo::gGeometry().siPlaneXPosition(sensorID); //  _siPlanesLayerLayout->getSensitivePositionX(layerIndex); // mm
+              telPos[1] = geo::gGeometry().siPlaneYPosition(sensorID); //  _siPlanesLayerLayout->getSensitivePositionY(layerIndex); // mm
+              telPos[2] = geo::gGeometry().siPlaneZPosition(sensorID); //  _siPlanesLayerLayout->getSensitivePositionZ(layerIndex); // mm
               
           }
  
@@ -841,7 +851,7 @@ void EUTelApplyAlignmentProcessor::RevertGear6D( LCEvent *event)
 
       // now we have to understand which layer this hit belongs to.
       int sensorID = hitDecoder(inputHit)["sensorID"];
-
+/*
       if ( _conversionIdMap.size() != static_cast< unsigned >( _siPlanesParameters->getSiPlanesNumber()) ) 
       {
           // first of all try to see if this sensorID already belong to
@@ -862,7 +872,7 @@ void EUTelApplyAlignmentProcessor::RevertGear6D( LCEvent *event)
       }
       
       int layerIndex   = _conversionIdMap[sensorID];
-
+*/
       // determine z position of the plane
       // 20 December 2010 @libov
 /*      float	z_sensor = 0;
@@ -945,21 +955,20 @@ void EUTelApplyAlignmentProcessor::RevertGear6D( LCEvent *event)
           }
           else
           {
-              gRotation[0]    = _siPlanesLayerLayout->getLayerRotationXY(layerIndex); // Euler alpha ;
-              gRotation[1]    = _siPlanesLayerLayout->getLayerRotationZX(layerIndex); // Euler alpha ;
-              gRotation[2]    = _siPlanesLayerLayout->getLayerRotationZY(layerIndex); // Euler alpha ;
+              gRotation[0] = geo::gGeometry().siPlaneZRotation(sensorID); // _siPlanesLayerLayout->getLayerRotationXY(layerIndex); // Euler alpha ;
+              gRotation[1] = geo::gGeometry().siPlaneYRotation(sensorID); // _siPlanesLayerLayout->getLayerRotationZX(layerIndex); // Euler alpha ;
+              gRotation[2] = geo::gGeometry().siPlaneXRotation(sensorID); // _siPlanesLayerLayout->getLayerRotationZY(layerIndex); // Euler alpha ;
 
               // input angles are in DEGREEs !!!
               // translate into radians
     
-              gRotation[0]  =   gRotation[0] *3.1415926/180.; // 
-              gRotation[1]  =   gRotation[1] *3.1415926/180.; //
-              gRotation[2]  =   gRotation[2] *3.1415926/180.; //
+              gRotation[0] = gRotation[0] *3.1415926/180.; // 
+              gRotation[1] = gRotation[1] *3.1415926/180.; //
+              gRotation[2] = gRotation[2] *3.1415926/180.; //
 
-              telPos[0]  =  _siPlanesLayerLayout->getSensitivePositionX(layerIndex); // mm
-              telPos[1]  =  _siPlanesLayerLayout->getSensitivePositionY(layerIndex); // mm
-              telPos[2]  =  _siPlanesLayerLayout->getSensitivePositionZ(layerIndex)+0.5*_siPlanesLayerLayout->getSensitiveThickness(layerIndex) ; // mm
-              
+              telPos[0] = geo::gGeometry().siPlaneXPosition(sensorID); //  _siPlanesLayerLayout->getSensitivePositionX(layerIndex); // mm
+              telPos[1] = geo::gGeometry().siPlaneYPosition(sensorID); //  _siPlanesLayerLayout->getSensitivePositionY(layerIndex); // mm
+              telPos[2] = geo::gGeometry().siPlaneZPosition(sensorID); //  _siPlanesLayerLayout->getSensitivePositionZ(layerIndex); // mm              
           }
       
           if( _iEvt < _printEvents )
@@ -1765,10 +1774,12 @@ void EUTelApplyAlignmentProcessor::bookHistos() {
 
     // histograms are grouped into folders named after the
     // detector. This requires to loop on detector now.
-    for (int iDet = 0 ; iDet < _siPlanesParameters->getSiPlanesNumber(); iDet++) 
+
+
+    for (int iDet = 0 ; iDet < geo::gGeometry().nPlanes(); iDet++) 
     {
-      int sensorID = _siPlanesLayerLayout->getID( iDet ) ;
- 
+      int sensorID = geo::gGeometry().sensorZOrderToID( iDet );
+
       streamlog_out ( MESSAGE4 ) <<  "Booking histograms for sensorID: " << sensorID << endl;
 
       string basePath;
@@ -1785,18 +1796,15 @@ void EUTelApplyAlignmentProcessor::bookHistos() {
       // by all its size.
       double safetyFactor = 1.0;
 
-      double xMin = safetyFactor * ( _siPlanesLayerLayout->getSensitivePositionX( iDet ) -
-                                     ( 0.5 * _siPlanesLayerLayout->getSensitiveSizeX ( iDet ) ));
-      double xMax = safetyFactor * ( _siPlanesLayerLayout->getSensitivePositionX( iDet ) +
-                                     ( 0.5 * _siPlanesLayerLayout->getSensitiveSizeX ( iDet )));
+      double xMin = safetyFactor * ( geo::gGeometry().siPlaneXPosition(sensorID) - ( 0.5 *  geo::gGeometry().siPlaneXSize(sensorID) ) );
+      double xMax = safetyFactor * ( geo::gGeometry().siPlaneXPosition(sensorID) + ( 0.5 *  geo::gGeometry().siPlaneXSize(sensorID) ) );
 
-      double yMin = safetyFactor * ( _siPlanesLayerLayout->getSensitivePositionY( iDet ) -
-                                     ( 0.5 * _siPlanesLayerLayout->getSensitiveSizeY ( iDet )));
-      double yMax = safetyFactor * ( _siPlanesLayerLayout->getSensitivePositionY( iDet ) +
-                                     ( 0.5 * _siPlanesLayerLayout->getSensitiveSizeY ( iDet )) );
+      double yMin = safetyFactor * ( geo::gGeometry().siPlaneYPosition(sensorID) - ( 0.5 *  geo::gGeometry().siPlaneYSize(sensorID) ) );
+      double yMax = safetyFactor * ( geo::gGeometry().siPlaneYPosition(sensorID) + ( 0.5 *  geo::gGeometry().siPlaneYSize(sensorID) ) );
 
-      int xNBin = static_cast< int > ( safetyFactor ) * _siPlanesLayerLayout->getSensitiveNpixelX( iDet );
-      int yNBin = static_cast< int > ( safetyFactor ) * _siPlanesLayerLayout->getSensitiveNpixelY( iDet );
+
+      int xNBin = static_cast< int > ( safetyFactor ) * geo::gGeometry().siPlaneXNpixels(sensorID) ; 
+      int yNBin = static_cast< int > ( safetyFactor ) * geo::gGeometry().siPlaneYNpixels(sensorID) ; 
 
       {
         stringstream ss ;
@@ -1838,6 +1846,7 @@ void EUTelApplyAlignmentProcessor::bookHistos() {
 
     // we have to found the boundaries of this histograms. Let's take
     // the outer positions in all directions
+/*
     double xMin  =      numeric_limits< double >::max();
     double xMax  = -1 * numeric_limits< double >::max();
     int    xNBin = numeric_limits< int >::min();
@@ -1859,14 +1868,14 @@ void EUTelApplyAlignmentProcessor::bookHistos() {
       yNBin = max( _siPlanesLayerLayout->getSensitiveNpixelY( iPlane ), yNBin );
 
     }
-
+*/
 
     // since we may still have alignment problem, we have to take a
     // safety factor on the x and y direction especially.
     // here I take something less than 2 because otherwise I will have
     // a 200MB histogram.
-    double safetyFactor = 1.0;
-
+//    double safetyFactor = 1.0;
+/*
     double xDistance = std::abs( xMax - xMin ) ;
     double xCenter   = ( xMax + xMin ) / 2 ;
     xMin  = xCenter - safetyFactor * ( xDistance / 2 );
@@ -1879,7 +1888,8 @@ void EUTelApplyAlignmentProcessor::bookHistos() {
     for ( int i = 0 ; i < xNBin ; ++i ) {
       xAxis.push_back ( xMin + i * step );
     }
-
+*/
+/*
     double yDistance = std::abs( yMax - yMin ) ;
     double yCenter   = ( yMax + yMin ) / 2 ;
     yMin  = yCenter - safetyFactor * ( yDistance / 2 );
@@ -1892,17 +1902,17 @@ void EUTelApplyAlignmentProcessor::bookHistos() {
     for ( int i = 0 ; i < yNBin ; ++i ) {
       yAxis.push_back( yMin + i * step ) ;
     }
-
+*/
 
     // generate the z axis but not equally spaced!
-    double safetyMargin = 10; // this is mm
-    vector< double > zAxis;
-    for ( int i = 0 ; i < 2 * _siPlanesParameters->getSiPlanesNumber(); ++i ) {
-      double zPos =  _siPlanesLayerLayout->getSensitivePositionZ( i/2 );
-      zAxis.push_back( zPos - safetyMargin) ;
-      ++i;
-      zAxis.push_back( zPos + safetyMargin );
-    }
+//    double safetyMargin = 10; // this is mm
+//    vector< double > zAxis;
+//    for ( int i = 0 ; i < 2 * _siPlanesParameters->getSiPlanesNumber(); ++i ) {
+//      double zPos =  _siPlanesLayerLayout->getSensitivePositionZ( i/2 );
+//      zAxis.push_back( zPos - safetyMargin) ;
+//      ++i;
+//      zAxis.push_back( zPos + safetyMargin );
+//    }
 
 
 /*    AIDA::IHistogram3D * densityPlot = AIDAProcessor::histogramFactory(this)->createHistogram3D( _densityPlotBeforeAlignName ,
@@ -1969,7 +1979,7 @@ void EUTelApplyAlignmentProcessor::TransformToLocalFrame(TrackerHitImpl* outputH
 
         // now we have to understand which layer this hit belongs to.
         int sensorID = hitDecoder(outputHit)["sensorID"];
-
+/*
         if ( _conversionIdMap.size() != static_cast< unsigned >( _siPlanesParameters->getSiPlanesNumber()) ) 
         {
           // first of all try to see if this sensorID already belong to
@@ -1988,20 +1998,20 @@ void EUTelApplyAlignmentProcessor::TransformToLocalFrame(TrackerHitImpl* outputH
               }
           }
         }
-      
-        int layerIndex   = _conversionIdMap[sensorID];
+  */    
+//        int layerIndex   = _conversionIdMap[sensorID];
         double xSize = 0., ySize = 0.;
         double xPitch = 0., yPitch = 0.;
         double xPointing[2] = { 1., 0. }, yPointing[2] = { 1., 0. };
 
-        xPitch       = _siPlanesLayerLayout->getSensitivePitchX(layerIndex);    // mm
-        yPitch       = _siPlanesLayerLayout->getSensitivePitchY(layerIndex);    // mm
-        xSize        = _siPlanesLayerLayout->getSensitiveSizeX(layerIndex);     // mm
-        ySize        = _siPlanesLayerLayout->getSensitiveSizeY(layerIndex);     // mm
-        xPointing[0] = _siPlanesLayerLayout->getSensitiveRotation1(layerIndex); // was -1 ;
-        xPointing[1] = _siPlanesLayerLayout->getSensitiveRotation2(layerIndex); // was  0 ;
-        yPointing[0] = _siPlanesLayerLayout->getSensitiveRotation3(layerIndex); // was  0 ;
-        yPointing[1] = _siPlanesLayerLayout->getSensitiveRotation4(layerIndex); // was -1 ;
+        xPitch       = geo::gGeometry().siPlaneXPitch( sensorID ); // _siPlanesLayerLayout->getSensitivePitchX(layerIndex);    // mm
+        yPitch       = geo::gGeometry().siPlaneYPitch( sensorID ); // _siPlanesLayerLayout->getSensitivePitchY(layerIndex);    // mm
+        xSize        = geo::gGeometry().siPlaneXSize( sensorID );  // _siPlanesLayerLayout->getSensitiveSizeX(layerIndex);     // mm
+        ySize        = geo::gGeometry().siPlaneYSize( sensorID );  // _siPlanesLayerLayout->getSensitiveSizeY(layerIndex);     // mm
+        xPointing[0] = geo::gGeometry().siPlaneRotation1( sensorID ); // _siPlanesLayerLayout->getSensitiveRotation1(layerIndex); // was -1 ;
+        xPointing[1] = geo::gGeometry().siPlaneRotation2( sensorID ); // _siPlanesLayerLayout->getSensitiveRotation2(layerIndex); // was  0 ;
+        yPointing[0] = geo::gGeometry().siPlaneRotation3( sensorID ); // _siPlanesLayerLayout->getSensitiveRotation3(layerIndex); // was  0 ;
+        yPointing[1] = geo::gGeometry().siPlaneRotation4( sensorID ); // _siPlanesLayerLayout->getSensitiveRotation4(layerIndex); // was -1 ;
 
         double sign = 0;
           if      ( xPointing[0] < -0.7 )     sign = -1 ;

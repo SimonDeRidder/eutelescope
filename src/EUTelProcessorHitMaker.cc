@@ -23,6 +23,10 @@
 #include "EUTelEventImpl.h"
 #include "EUTELESCOPE.h"
 #include "EUTelVirtualCluster.h"
+//by TB
+#include "EUTelSimpleVirtualCluster.h"
+#include "EUTelGenericSparseClusterImpl.h"
+//TB over
 #include "EUTelFFClusterImpl.h"
 #include "EUTelDFFClusterImpl.h"
 #include "EUTelBrickedClusterImpl.h"
@@ -31,6 +35,7 @@
 #include "EUTelAlignmentConstant.h"
 #include "EUTelReferenceHit.h"
 
+#include <IMPL/TrackerDataImpl.h>
 
 // marlin includes ".h"
 #include "marlin/Processor.h"
@@ -101,7 +106,6 @@ _orderedSensorIDVec()
   _description =
     "EUTelProcessorHitMaker is responsible to translate cluster centers from the local frame of reference"
     " to the external frame of reference using the GEAR geometry description";
-
 
   registerInputCollection(LCIO::TRACKERPULSE,"PulseCollectionName",
                             "Cluster (pulse) collection name",
@@ -198,10 +202,11 @@ void EUTelProcessorHitMaker::DumpReferenceHitDB()
     EUTelReferenceHit * refhit = new EUTelReferenceHit();
 
     int sensorID = geo::gGeometry().sensorZOrderToID( ii );
+
     refhit->setSensorID( sensorID );
     refhit->setXOffset( geo::gGeometry().siPlaneXPosition( sensorID ) );
-    refhit->setYOffset( geo::gGeometry().siPlaneYPosition(sensorID) );
-    refhit->setZOffset( geo::gGeometry().siPlaneZPosition(sensorID) + 0.5*geo::gGeometry().siPlaneZSize(sensorID) );
+    refhit->setYOffset( geo::gGeometry().siPlaneYPosition( sensorID ) );
+    refhit->setZOffset( geo::gGeometry().siPlaneZPosition( sensorID ) ); // + 0.5*geo::gGeometry().siPlaneZSize(sensorID) );
     
     refVec[0] = 0.;
     refVec[1] = 0.;
@@ -340,8 +345,8 @@ void EUTelProcessorHitMaker::processEvent (LCEvent * event) {
     // prepare an encoder for the hit collection
     CellIDEncoder<TrackerHitImpl> idHitEncoder(EUTELESCOPE::HITENCODING, hitCollection);
 
+//    CellIDDecoder<TrackerPulseImpl>  clusterCellDecoder(pulseCollection);
     CellIDDecoder<TrackerPulseImpl>  clusterCellDecoder(pulseCollection);
-    CellIDDecoder<TrackerDataImpl>   cellDecoder( pulseCollection );
 
     int oldDetectorID = -100;
 
@@ -360,8 +365,14 @@ void EUTelProcessorHitMaker::processEvent (LCEvent * event) {
 
 	
         TrackerDataImpl  * channelList  = dynamic_cast<TrackerDataImpl*> ( clusterFrame->getTrackerData() ); // list of pixels ?
-		
+	
+	
         EUTelVirtualCluster * cluster   = new EUTelSparseClusterImpl< EUTelGenericSparsePixel > (static_cast<TrackerDataImpl *> ( channelList ));
+
+// by TB
+//	EUTelSimpleVirtualCluster* cluster;
+//      cluster = new EUTelGenericSparseClusterImpl< EUTelGeometricPixel >( static_cast<TrackerDataImpl*> ( channelList ) );
+// TB over
 
       // there could be several clusters belonging to the same
       // detector. So update the geometry information only if this new
@@ -407,9 +418,11 @@ void EUTelProcessorHitMaker::processEvent (LCEvent * event) {
       //
 
       // get the position of the seed pixel. This is in pixel number.
-      int xCluSeed = 0;
-      int yCluSeed = 0;
-      cluster->getSeedCoord(xCluSeed, yCluSeed);
+//      int xCluSeed = 0;
+//      int yCluSeed = 0;
+
+// default:
+//      cluster->getSeedCoord(xCluSeed, yCluSeed);
 
 
 
@@ -426,36 +439,46 @@ void EUTelProcessorHitMaker::processEvent (LCEvent * event) {
       //! That one has to be eta-corrected and the global coordinate correction has to be applied on top of that!
       //! So prepare a brickedCluster pointer now:
 
-      EUTelBrickedClusterImpl* p_tmpBrickedCluster = NULL;
-      if ( clusterType == kEUTelBrickedClusterImpl )
-      {
-            p_tmpBrickedCluster = dynamic_cast< EUTelBrickedClusterImpl* >(cluster);
-            if (p_tmpBrickedCluster == NULL)
-            {
-                streamlog_out ( ERROR4 ) << " .COULD NOT CREATE EUTelBrickedClusterImpl* !!!" << endl;
-                throw UnknownDataTypeException("COULD NOT CREATE EUTelBrickedClusterImpl* !!!");
-            }
-      }
+//      EUTelBrickedClusterImpl* p_tmpBrickedCluster = NULL;
+//      if ( clusterType == kEUTelBrickedClusterImpl )
+//      {
+//            p_tmpBrickedCluster = dynamic_cast< EUTelBrickedClusterImpl* >(cluster);
+//            if (p_tmpBrickedCluster == NULL)
+//            {
+//                streamlog_out ( ERROR4 ) << " .COULD NOT CREATE EUTelBrickedClusterImpl* !!!" << endl;
+//                throw UnknownDataTypeException("COULD NOT CREATE EUTelBrickedClusterImpl* !!!");
+//            }
+//      }
 
-      float xShift = 0.;
-      float yShift = 0.;
+//      double xCorrection = 0.;
+//      double yCorrection = 0.;
 
-      cluster->getCenterOfGravityShift( xShift, yShift );
-    
-      double xCorrection = static_cast<double> (xShift) ;
-      double yCorrection = static_cast<double> (yShift) ;
+// default
+//      float xShift = 0.;
+//      float yShift = 0.;
+
+//      cluster->getCenterOfGravityShift( xShift, yShift );
+
+//      xCorrection = static_cast<double> (xShift) ;
+//      yCorrection = static_cast<double> (yShift) ;
+// deafult -over
+
 
       // rescale the pixel number in millimeter
-      double xDet = ( static_cast<double> (xCluSeed) + xCorrection + 0.5 ) * xPitch ;
-      double yDet = ( static_cast<double> (yCluSeed) + yCorrection + 0.5 ) * yPitch ;
+//      double xDet = ( static_cast<double> (xCluSeed) + xCorrection + 0.5 ) * xPitch ;
+//      double yDet = ( static_cast<double> (yCluSeed) + yCorrection + 0.5 ) * yPitch ;
 
 // check the hack from Havard:
       float xCoG(0.0f), yCoG(0.0f);
-      cluster->getCenterOfGravity(xCoG, yCoG);
-      xDet = (xCoG + 0.5) * xPitch;
-      yDet = (yCoG + 0.5) * yPitch; 
+//
+      cluster->getCenterOfGravity(xCoG, yCoG); // default !!
+ 
+//      cluster->getCoG(xCoG, yCoG); // by TB
 
-      streamlog_out(DEBUG1) << "cluster[" << setw(4) << iCluster << "] on sensor[" << setw(3) << sensorID 
+      double xDet = (xCoG + 0.5) * xPitch;
+      double yDet = (yCoG + 0.5) * yPitch; 
+
+      streamlog_out(DEBUG1) << "cluster[" << setw(4) << iCluster << "] on sensor[" << setw(3) << sensorID << " Pitch " << xPitch << " : " << yPitch 
                             << "] at [" << setw(8) << setprecision(3) << xCoG << ":" << setw(8) << setprecision(3) << yCoG << "]"
                             << " ->  [" << setw(8) << setprecision(3) << xDet << ":" << setw(8) << setprecision(3) << yDet << "]"
                             << endl;
