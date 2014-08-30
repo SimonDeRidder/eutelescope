@@ -207,6 +207,7 @@ namespace eutelescope {
     double * _planePosition;
     bool   * _isActive;
     int _iDUT;
+	double _dutThickness;
 
 	// tuple data arrays:
 	//hit information
@@ -238,6 +239,9 @@ namespace eutelescope {
 	double _dutZLocal;
 	double _dutTx;
 	double _dutTy;
+	double _dutPoeX;
+	double _dutPoeY;
+	double _dutPoeZ;
 	double _dutQ;
 	int _dutClusterSizeX;
 	int _dutClusterSizeY;

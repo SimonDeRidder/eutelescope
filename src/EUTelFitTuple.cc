@@ -228,6 +228,12 @@ void EUTelFitTuple::init()
         }
     }
 
+
+	//get thickness of DUT sensitive layer
+	unsigned int DUTPlaneID = std::distance(_planeID->begin(),find(_planeID->begin(), _planeID->end(), _DUTid));
+	_dutThickness = _siPlanesLayerLayout->getSensitiveThickness(DUTPlaneID);
+	message<DEBUG5> (log() << "_dutThickness: " << _dutThickness);
+
 	//Print out geometry information
 	message<MESSAGE5> (log() << "Telescope configuration with " << _nPlanes << " planes");
 	for(int ipl=0; ipl < _nPlanes; ipl++)
@@ -459,15 +465,51 @@ void EUTelFitTuple::processEvent(LCEvent * event)
 		    }
         }// End of loop over hits in track
 
-		//continue if necessary hits have been found
-		if (dutHitFound && _isFitted[dutPlaneID-1])
+		//check if hits before DUT have been fitted (for Tx & Ty)
+		bool hitBefore = false;
+		int hitBeforeID = 0;
+		if (dutPlaneID>0 && _isFitted[dutPlaneID-1])
 		{
-			//calculate dutTx and dutTy
-			double hitBeforeDUT[] = {_fittedX[dutPlaneID-1], _fittedY[dutPlaneID-1], _fittedZ[dutPlaneID-1]};
+			hitBefore = true;
+			hitBeforeID = dutPlaneID-1;
+		} else if (dutPlaneID>1 && _isFitted[dutPlaneID-2])
+		{
+			hitBefore = true;
+			hitBeforeID = dutPlaneID-2;
+		}
+
+		//continue if necessary hits have been found
+		if (dutHitFound && hitBefore)
+		{
+			//calculate dutTx and dutTy, track incidence angles w.r.t. normal
+			double hitBeforeDUT[] = {_fittedX[hitBeforeID], _fittedY[hitBeforeID], _fittedZ[hitBeforeID]};
 			double hitBeforeDUTLocal[3];// hit on plane before DUT in DUT local frame
 			geo::gGeometry().master2Localtwo(_DUTid,hitBeforeDUT,hitBeforeDUTLocal);
-			_dutTx = atan2(hitBeforeDUTLocal[0]-_fittedXLocal[dutPlaneID], _fittedZLocal[dutPlaneID]-hitBeforeDUTLocal[2]);
-			_dutTy = atan2(hitBeforeDUTLocal[1]-_fittedYLocal[dutPlaneID], _fittedZLocal[dutPlaneID]-hitBeforeDUTLocal[2]);
+			double deltaZ = _fittedZLocal[dutPlaneID]-hitBeforeDUTLocal[2];
+			_dutTx = atan2(hitBeforeDUTLocal[0]-_fittedXLocal[dutPlaneID], deltaZ);
+			_dutTy = atan2(hitBeforeDUTLocal[1]-_fittedYLocal[dutPlaneID], deltaZ);
+			//glitch under quasi 90 degree sensor tilt angle makes fitted local hit huge
+			if( ( ( _dutTx>(-1.5709) && _dutTx<(-1.5707) ) || ( _dutTx<(1.5709) && _dutTx>(1.5707) ) )
+				&& ( _fittedXLocal[dutPlaneID]>1000 || _fittedXLocal[dutPlaneID]<-1000 ) )
+			{
+				double sign = hitBeforeDUTLocal[0]/abs(hitBeforeDUTLocal[0]);
+				message<DEBUG5>(log() << "glitch: large fitted dut local hit x position: "
+									<< _fittedXLocal[dutPlaneID]);
+				message<DEBUG5>(log() << "Incidence angle before: " << _dutTx);
+				_dutTx = atan2(sign*abs(_fittedXLocal[dutPlaneID]), deltaZ);
+				message<DEBUG5>(log() << "Incidence angle after: " << _dutTx);
+			}
+			if( ( ( _dutTy>(-1.5709) && _dutTy<(-1.5707) ) || ( _dutTy<(1.5709) && _dutTy>(1.5707) ) )
+				&& ( _fittedYLocal[dutPlaneID]>1000 && _fittedYLocal[dutPlaneID]<-1000 ) )
+			{
+				double sign = hitBeforeDUTLocal[1]/abs(hitBeforeDUTLocal[1]);
+				message<DEBUG5>(log() << "glitch: large fitted dut local hit y position: "
+									<< _fittedYLocal[dutPlaneID]);
+				message<DEBUG5>(log() << "Incidence angle before: " << _dutTy);
+				_dutTy = atan2(sign*abs(_fittedYLocal[dutPlaneID]), deltaZ);
+				message<DEBUG5>(log() << "Incidence angle after: " << _dutTy);
+			}
+
 			//calculate residuals
 			for (int ipl = 0; ipl<_nPlanes; ipl++)
 			{
@@ -475,6 +517,11 @@ void EUTelFitTuple::processEvent(LCEvent * event)
 				_resYLocal[ipl] = _measuredYLocal[ipl]-_fittedYLocal[ipl];
 				_resZLocal[ipl] = _measuredZLocal[ipl]-_fittedZLocal[ipl];
 			}
+
+			//calculate track point of entry
+			_dutPoeX = _fittedXLocal[dutPlaneID]-(_dutThickness/2.)*tan(_dutTx);
+			_dutPoeY = _fittedYLocal[dutPlaneID]-(_dutThickness/2.)*tan(_dutTx);
+			_dutPoeZ = _fittedZLocal[dutPlaneID]-(_dutThickness/2.);
 
 			// Fill TTree
 			_euTree->Fill();
@@ -494,8 +541,10 @@ void EUTelFitTuple::end()
 {
 	message<MESSAGE5> (log() << "TTree with "
 						<< _euTree->GetEntries() << " rows created");
+
 	//write tree
 	_outputFile->Write();
+	_outputFile->Close();
 
 	// Clean memory
 
@@ -565,6 +614,9 @@ void EUTelFitTuple::bookHistos()
 	_euTree->Branch("dutZLocal", &_dutZLocal);
 	_euTree->Branch("dutTx", &_dutTx);
 	_euTree->Branch("dutTy", &_dutTy);
+	_euTree->Branch("dutPOEX", &_dutPoeX);
+	_euTree->Branch("dutPOEY", &_dutPoeY);
+	_euTree->Branch("dutPOEZ", &_dutPoeZ);
 	_euTree->Branch("dutQ", &_dutQ);
 	_euTree->Branch("dutClusterSizeX", &_dutClusterSizeX);
 	_euTree->Branch("dutClusterSizeY", &_dutClusterSizeY);
