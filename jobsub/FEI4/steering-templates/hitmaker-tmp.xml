@@ -42,7 +42,7 @@
   <!--If true a 3D histo will be filled. It may require large memory-->
   <!--parameter name="Enable3DHisto" type="bool">true </parameter-->
   <!--Hit coordinates are calculated in local reference frame of sensor-->
-  <!--parameter name="EnableLocalCoordidates" type="bool">false </parameter-->
+  <parameter name="EnableLocalCoordidates" type="bool">false </parameter>
   <!--Hit collection name-->
   <parameter name="HitCollectionName" type="string" lcioOutType="TrackerHit"> hit </parameter>
   <!--This is the name of the LCIO file name with the output offset db (add .slcio)-->
@@ -62,7 +62,7 @@
   <!--If true a 3D histo will be filled. It may require large memory-->
   <!--parameter name="Enable3DHisto" type="bool">true </parameter-->
   <!--Hit coordinates are calculated in local reference frame of sensor-->
-  <!--parameter name="EnableLocalCoordidates" type="bool">false </parameter-->
+  <parameter name="EnableLocalCoordidates" type="bool">false </parameter>
   <!--Hit collection name-->
   <parameter name="HitCollectionName" type="string" lcioOutType="TrackerHit"> hit </parameter>
   <!--This is the name of the LCIO file name with the output offset db (add .slcio)-->
