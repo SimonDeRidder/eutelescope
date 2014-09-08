@@ -33,8 +33,8 @@ void make_angle_size()
 	int index = 0;
 	for (int i=0; i<=endNumber-startNumber; i++)
 	{
-		if(startNumber+i==55 || startNumber+i==52)
-		{//55 doesn't exist, 52 has huge errors
+		if(startNumber+i==55)
+		{//55 doesn't exist
 			continue;
 		}
 		TString inputFileName = "output/histograms/run0035";
@@ -113,10 +113,10 @@ void make_angle_size()
 	Double_t chi2 = fitResult->GetChisquare();
 	Double_t ndf = fitResult->GetNDF();
 	cout << "chi2/ndf= " << chi2 << "/" << ndf << " = " << chi2/ndf << endl;
-	outputGraphSize.SetTitle("measured cluster size in x vs fitted track incidence angle w.r.t. x");
+	outputGraphSize.SetTitle("Measured cluster size in x vs fitted track incidence angle w.r.t. x");
 	outputGraphSize.GetHistogram()->GetXaxis()->SetTitle("Angle");
 	outputGraphSize.GetHistogram()->GetXaxis()->CenterTitle();
-	outputGraphSize.GetHistogram()->GetYaxis()->SetTitle("average cluster size");
+	outputGraphSize.GetHistogram()->GetYaxis()->SetTitle("Average cluster size");
 	outputGraphSize.GetHistogram()->GetYaxis()->CenterTitle();
 	outputGraphSize.Draw("AP");
 

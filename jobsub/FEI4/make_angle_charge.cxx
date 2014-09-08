@@ -94,18 +94,46 @@ void make_angle_charge()
 		}
 		index++;
 	}
+	//fitting function
+	TF1* chargeFit = new TF1("chargeFit", "[0] + abs([1]/cos(((x-[2])/180.)*pi))", -2.,2.);
+	chargeFit->SetParName(0, "Background");
+	chargeFit->SetParName(1, "Factor");
+	chargeFit->SetParName(2, "Phase");
+	chargeFit->SetParameter(0, 0.78);
+	chargeFit->SetParameter(1, 7.4);
+	chargeFit->SetParameter(2, -0.00001);
+	chargeFit->SetLineWidth(1);
+	chargeFit->SetLineColor(4);
+
+	//create image
 	TCanvas canvas;
 	TGraphErrors outputGraphCharge(angleList,chargeList,angleErrorList,chargeErrorList);
-	outputGraphCharge.SetTitle("measured cluster charge vs fitted track incidence angle");
+	outputGraphCharge.Fit("chargeFit");
+	TF1* fitResult = outputGraphCharge.GetFunction("chargeFit");
+	Double_t chi2 = fitResult->GetChisquare();
+	Double_t ndf = fitResult->GetNDF();
+	cout << "chi2/ndf= " << chi2 << "/" << ndf << " = " << chi2/ndf << endl;
+	outputGraphCharge.SetTitle("Measured cluster charge vs fitted track incidence angle");
+	outputGraphCharge.GetHistogram()->GetXaxis()->SetTitle("Angle");
+	outputGraphCharge.GetHistogram()->GetXaxis()->CenterTitle();
+	outputGraphCharge.GetHistogram()->GetYaxis()->SetTitle("Mean cluster charge");
+	outputGraphCharge.GetHistogram()->GetYaxis()->CenterTitle();
 	outputGraphCharge.Draw("AP");
+
+	TText t;
+	t.SetTextSize(0.03);
+	t.SetTextAlign(22);
+	Double_t xmin = 0;
+	Double_t y = -40.;
+	t.DrawText(xmin, y, Form("%d", 0.));
+	for (int i=1; i<4; i++)
+	{
+		t.DrawText(xmin+(90-((atan(exp(-i))*360)/pi)), y, Form("%d", i));
+	}
+	t.DrawText(xmin+90, y, "inf");
+	t.DrawText(xmin+90+(atan(exp(-3))*360)/pi, y, Form("%d", 3));
+
 	canvas.SaveAs("angle_charge.png");
 	inputFile->Close();
-	~angle;
-	~charge;
-	~angleList;
-	~angleErrorList;
-	~chargeList;
-	~chargeErrorList;
-	~inputFileName;
   return;
 }
