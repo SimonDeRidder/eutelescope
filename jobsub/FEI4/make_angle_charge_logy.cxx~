@@ -1,0 +1,142 @@
+#include "TH1F.h"
+#include "TH1D.h"
+#include "TFile.h"
+#include "TTree.h"
+#include "TH1D.h"
+#include "TGraphPainter.h"
+#include "TCanvas.h"
+
+using namespace TMath;
+using namespace std;
+
+const int startNumber = 61;
+const int endNumber = 69;
+const int dutSensorID = 20;
+const Double_t pi = 3.14159265359;
+
+void make_angle_charge_logy()
+{
+	TVectorD charge;
+	Double_t tempAngle;
+	Double_t tempCharge;
+	UInt_t nEntries = 0;
+	int chargeMax = 0;
+	Double_t angleSum;
+	Double_t angleMean;
+	int index = 0;
+	TCanvas canvas;
+	canvas.SetTitle("Total cluster charge distribution for different angles");
+	canvas.SetLogy(1);
+
+	TString inputFileName = "output/histograms/run0035";
+	inputFileName.Append(TString::Itoa(endNumber,10));
+	inputFileName.Append("-NTuple.root");
+	TFile* inputFile = new TFile(inputFileName,"READ");
+	TTree* inputTree;
+	inputTree = (TTree) inputFile->Get("EUFit");
+	inputTree->SetBranchAddress("dutTx",&tempAngle);
+	inputTree->SetBranchAddress("dutQ",&tempCharge);
+	nEntries = inputTree->GetEntries();
+	if(nEntries==0)
+	{
+		continue;
+	}
+	charge.ResizeTo(nEntries);
+	chargeMax = 0;
+	angleSum = 0;
+	for(int j=0; j<nEntries; j++)
+	{
+		inputTree->GetEntry(j);
+		charge[j] = tempCharge;
+		angleSum += (tempAngle/pi)*180;
+		if (tempCharge>chargeMax)
+		{
+			chargeMax = tempCharge;
+		}
+	}
+	angleMean = angleSum/nEntries;
+
+	TH1D* anglehist = new TH1D();
+	stringstream sss;
+	sss << angleMean << " degrees, eta= ";
+	double tant = tan(pi*(90-angleMean)/360);
+	cout << tant << '\n';
+	if (tant<=0)
+	{
+		sss << "0";
+	} else
+	{
+		sss << -log(tant);
+	}
+	TLegend* legend = new TLegend(0.6, 0.4, 0.9, 0.9);
+	legend->AddEntry(anglehist, sss.str().c_str(), "l");
+	anglehist->SetBins(100, 0, 100);
+	for(int j=0; j<nEntries; j++)
+	{
+		anglehist->Fill(charge[j]);
+	}
+	anglehist->GetXaxis()->SetTitle("Total cluster charge");
+	anglehist->GetXaxis()->CenterTitle();
+	anglehist->SetLineColor(1);
+	anglehist->Draw();
+
+	//inputFile->Close();
+
+	for (int i=endNumber-1; i>=startNumber; i--)
+	{
+		TString inputFileName = "output/histograms/run0035";
+		inputFileName.Append(TString::Itoa(i,10));
+		inputFileName.Append("-NTuple.root");
+		TFile* inputFile = new TFile(inputFileName,"READ");
+		TTree* inputTree;
+		inputTree = (TTree) inputFile->Get("EUFit");
+		inputTree->SetBranchAddress("dutTx",&tempAngle);
+		inputTree->SetBranchAddress("dutQ",&tempCharge);
+		nEntries = inputTree->GetEntries();
+		if(nEntries==0)
+		{
+			continue;
+		}
+		charge.ResizeTo(nEntries);
+		chargeMax = 0;
+		angleSum = 0;
+		for(int j=0; j<nEntries; j++)
+		{
+			inputTree->GetEntry(j);
+			charge[j] = tempCharge;
+			angleSum += (tempAngle/pi)*180;
+			if (tempCharge>chargeMax)
+			{
+				chargeMax = tempCharge;
+			}
+		}
+		angleMean = angleSum/nEntries;
+
+		anglehist = new TH1D();
+		stringstream s;
+		s << angleMean << " degrees, eta= ";
+		double tant = tan(pi*(90-angleMean)/360);
+		if (tant<=0)
+		{
+			s << "0";
+		} else
+		{
+			s << -log(tant);
+		}
+		legend->AddEntry(anglehist, s.str().c_str(), "l");
+		anglehist->SetName(s.str().c_str());
+		anglehist->SetBins(100, 0, 100);
+		for(int j=0; j<nEntries; j++)
+		{
+			anglehist->Fill(charge[j]);
+		}
+		anglehist->SetLineColor(endNumber-i+1);
+		anglehist->Draw("same");
+
+		//inputFile->Close();
+	}
+	legend->Draw();
+	gStyle->SetOptStat(0);
+	canvas.SaveAs("ToT_combined_logy.png");
+  return;
+}
